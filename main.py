@@ -159,8 +159,8 @@ class TaxCalculator:
                 total, income = self.calculate_income(monthly_salaries, bonus1, bonus2)
 
             # display results
-            self.total_label['text'] = f'\ {self.format_currency(total)}'
-            self.income_label['text'] = f'\ {self.format_currency(income)}'
+            self.total_label['text'] = f'¥ {self.format_currency(total)}'
+            self.income_label['text'] = f'¥ {self.format_currency(income)}'
         except ValueError:
             # show error for invalid input
             messagebox.showerror('Error', '数値を正しく入力してください (例: 250000)')
