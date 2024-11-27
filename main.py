@@ -49,13 +49,15 @@ class TaxCalculator:
         """
             create and arrange input fields for single and monthly salary modes
         """
+        vcmd = (self.root.register(self.validate_entry), '%P')      # register validate command
+
         # single monthly salary
         self.single_salary_frame = ttk.Frame(self.main_frame)
         self.single_salary_frame.grid(row=1, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=5)
 
         ttk.Label(self.single_salary_frame, text='月額給与 (円)').grid(row=0, column=0, sticky=tk.W, pady=5)
         self.monthly_var = tk.StringVar()
-        self.month_entry = ttk.Entry(self.single_salary_frame, textvariable=self.monthly_var)
+        self.month_entry = ttk.Entry(self.single_salary_frame, textvariable=self.monthly_var, validate='key', validatecommand=vcmd)
         self.month_entry.grid(row=0, column=1, sticky=(tk.W, tk.E), pady=5)
 
         # month salary inputs
@@ -64,19 +66,19 @@ class TaxCalculator:
 
         for i in range(12):
             ttk.Label(self.monthly_salary_frame, text=f'{i + 1}月', anchor='e').grid(row=i//2, column=(i%2)*2, sticky=(tk.E, tk.W), pady=2)
-            entry = ttk.Entry(self.monthly_salary_frame, textvariable=self.monthly_salaries[i], width=10)
+            entry = ttk.Entry(self.monthly_salary_frame, textvariable=self.monthly_salaries[i], width=10, validate='key', validatecommand=vcmd)
             entry.grid(row=i//2, column=(i%2)*2+1, sticky=(tk.W ,tk.E), pady=2)
 
         # bonus 1
         ttk.Label(self.main_frame, text='賞与1 (円)').grid(row=2, column=0 ,sticky=tk.W, pady=5)
         self.bonus1_var = tk.StringVar()
-        self.bonus1_entry = ttk.Entry(self.main_frame, textvariable=self.bonus1_var)
+        self.bonus1_entry = ttk.Entry(self.main_frame, textvariable=self.bonus1_var, validate='key', validatecommand=vcmd)
         self.bonus1_entry.grid(row=2, column=1, sticky=(tk.W, tk.E), pady=5)
 
         # bonus 2
         ttk.Label(self.main_frame, text='賞与2 (円)').grid(row=3, column=0 ,sticky=tk.W, pady=5)
         self.bonus2_var = tk.StringVar()
-        self.bonus2_entry = ttk.Entry(self.main_frame, textvariable=self.bonus2_var)
+        self.bonus2_entry = ttk.Entry(self.main_frame, textvariable=self.bonus2_var, validate='key', validatecommand=vcmd)
         self.bonus2_entry.grid(row=3, column=1, sticky=(tk.W, tk.E), pady=5)
 
     def toggle_salary_mode_input(self):
@@ -122,6 +124,12 @@ class TaxCalculator:
             format amount as currency with thousands separator
         """
         return locale.currency(amount, grouping=True, symbol=False)
+
+    def validate_entry(self, text):
+        """
+            validate the entry to allow only numeric characters, commas, and spaces
+        """
+        return re.fullmatch(r'[\d, \s]*', text) is not None
 
     def calculate_income(self, monthly_saralies, bonus1=0, bonus2=0):
         """
