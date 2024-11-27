@@ -55,7 +55,7 @@ class TaxCalculator:
         self.monthly_salary_frame.grid(row=1, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=5)
 
         for i in range(12):
-            ttk.Label(self.monthly_salary_frame, text=f'{i + 1}月').grid(row=i//2, column=(i%2)*2, sticky=tk.W, pady=2)
+            ttk.Label(self.monthly_salary_frame, text=f'{i + 1}月', anchor='e').grid(row=i//2, column=(i%2)*2, sticky=(tk.E, tk.W), pady=2)
             entry = ttk.Entry(self.monthly_salary_frame, textvariable=self.monthly_salaries[i], width=10)
             entry.grid(row=i//2, column=(i%2)*2+1, sticky=(tk.W ,tk.E), pady=2)
 
