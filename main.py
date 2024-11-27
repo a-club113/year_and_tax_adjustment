@@ -27,6 +27,13 @@ class TaxCalculator:
 
         self.monthly_salary_frame.grid_remove()
 
+        # binding for auto calculation
+        self.root.bind('<Return>', lambda event: self.calculate())
+        self.root.bind('<KP_Enter>', lambda event: self.calculate())
+        self.root.bind('<BackSpace>', lambda event: self.calculate())
+        for key in range(10):
+            self.root.bind(f'<Key-{key}>', lambda event: self.calculate())
+
     def create_salary_mode_selection(self):
         """
             create radio buttons to select salary input mode
