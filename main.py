@@ -1,4 +1,5 @@
 import locale
+import re
 import tkinter as tk
 from tkinter import messagebox, ttk
 
@@ -153,16 +154,18 @@ class TaxCalculator:
             calculate and display results
         """
         try:
+            clean_input = lambda x: int(re.sub(r'[^\d]', '', x) or 0)
+
             # get bonus values
-            bonus1 = int(self.bonus1_var.get() or 0)
-            bonus2 = int(self.bonus2_var.get() or 0)
+            bonus1 = clean_input(self.bonus1_var.get())
+            bonus2 = clean_input(self.bonus2_var.get())
 
             # determine salary calcuation mode
             if self.salary_mode.get() == 'single':
-                monthly = int(self.monthly_var.get() or 0)
+                monthly = clean_input(self.monthly_var.get())
                 total, income = self.calculate_income(monthly, bonus1, bonus2)
             else:
-                monthly_salaries = [int(salary.get() or 0) for salary in self.monthly_salaries]
+                monthly_salaries = [clean_input(salary.get()) for salary in self.monthly_salaries]
                 total, income = self.calculate_income(monthly_salaries, bonus1, bonus2)
 
             # display results
