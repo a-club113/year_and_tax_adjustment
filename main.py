@@ -141,21 +141,28 @@ class TaxCalculator:
         else:
             yearly_salary = sum(monthly_saralies) + bonus1 + bonus2     # if monthly salaries are provided
 
-        # emplyment income deduction calculation (As of 2024)
-        if yearly_salary <= 1_625_000:
-            deduction = 550_000
-        elif yearly_salary <= 1_800_000:
-            deduction = (yearly_salary * 0.4) - 100_000
-        elif yearly_salary <= 3_600_000:
-            deduction = (yearly_salary * 0.3) - 80_000
-        elif yearly_salary <= 6_600_000:
-            deduction = (yearly_salary * 0.2) - 440_000
-        elif yearly_salary <= 8_500_000:
-            deduction = (yearly_salary * 0.1) - 1_100_000
-        else:
-            deduction = 1_950_000
+        # calculate income (As of 2024)
+        income_rules = [
+            (550_999, lambda s: 0),
+            (1_618_999, lambda s: s - 550_000),
+            (1_619_999, lambda s: 1_069_000),
+            (1_621_999, lambda s: 1_070_000),
+            (1_623_999, lambda s: 1_072_000),
+            (1_627_999, lambda s: 1_074_000),
+            (1_799_999, lambda s: ((s // 4_000) * 1000) * 2.4 - 100_000),
+            (3_599_999, lambda s: ((s // 4_000) * 1000) * 2.8 - 80_000),
+            (6_599_999, lambda s: ((s // 4_000) * 1000) * 3.2 - 440_000),
+            (8_499_999, lambda s: s * 0.9 - 1_100_000),
+            (float('inf'), lambda s: s - 1_950_000)
+        ]
 
-        return yearly_salary, (yearly_salary - deduction)
+        for threshold, calculation in income_rules:
+            if yearly_salary <= threshold:
+                income = calculation(yearly_salary)
+
+                break
+
+        return yearly_salary, income
 
     def calculate(self):
         """
