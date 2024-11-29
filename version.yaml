@@ -1,0 +1,12 @@
+Version: version.txt
+CompanyName: My Company
+FileDescription: 年末調整の金額を計算するツールです
+InternalName: 年末調整計算ツール
+LegalCopyright: © 2024 a-club
+OriginalFilename: 年末調整計算ツール.exe
+ProductName: 年末調整計算ツール
+Translation:
+  - langID: 0
+    charsetID: 1200
+  - langID: 1041
+    charsetID: 1200
