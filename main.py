@@ -2,10 +2,9 @@ import locale
 import os
 import re
 import tkinter as tk
-import tkinter.scrolledtext as scrolledtext
 from tkinter import filedialog, messagebox, ttk
 
-import PyPDF2
+import fitz
 from PIL import Image, ImageTk
 from tkinterdnd2 import DND_FILES, TkinterDnD
 
@@ -19,9 +18,11 @@ class TaxCalculator:
     def __init__(self, root) -> None:
         self.root = root
         self.root.title('年末調整計算ツール')
+        root.grid_columnconfigure(2, weight=3)
 
         # create and set up the main window
         self.main_frame = ttk.Frame(root, padding=10)
+        self.main_frame.grid_columnconfigure(2, weight=3)
         self.main_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
 
         self.salary_mode = tk.StringVar(value='single')
@@ -42,6 +43,11 @@ class TaxCalculator:
             self.root.bind(f'<Key-{key}>', lambda event: self.calculate())
 
         self.create_pdf_viewer()    # frame for pdf viewer
+
+        # variables for pdf viewer
+        self.current_pdf = None
+        self.current_page = 0
+        self.pdf_zoom = 1.0
 
     def create_salary_mode_selection(self):
         """
@@ -135,13 +141,34 @@ class TaxCalculator:
         self.pdf_frame = ttk.LabelFrame(self.main_frame, text='PDF ビューワー')
         self.pdf_frame.grid(row=0, column=2, rowspan=8, padx=10, sticky=(tk.N, tk.S, tk.E, tk.W))
 
-        # select pdf button
-        self.select_pdf_button = ttk.Button(self.pdf_frame, text='PDF を選択', command=self.open_pdf_file)
-        self.select_pdf_button.pack(pady=5)
+        # button frame
+        button_frame = ttk.Frame(self.pdf_frame)
+        button_frame.pack(side=tk.TOP, fill=tk.X)
 
-        # scroll text for view pdf
-        self.pdf_text = scrolledtext.ScrolledText(self.pdf_frame, wrap=tk.WORD, width=40, height=20)
-        self.pdf_text.pack(padx=5, pady=5, expand=True, fill=tk.BOTH)
+        # select pdf button
+        self.select_pdf_button = ttk.Button(button_frame, text='PDF を選択', command=self.open_pdf_file)
+        self.select_pdf_button.pack(side=tk.LEFT, padx=5, pady=5)
+
+        # button for moving to previous page
+        self.prev_page_button = ttk.Button(button_frame, text='<<', command=self.prev_page, state=tk.DISABLED)
+        self.prev_page_button.pack(side=tk.LEFT, padx=2)
+
+        # label for display page
+        self.page_label = ttk.Label(button_frame, text='0 / 0 ページ', width=10)
+        self.page_label.pack(side=tk.LEFT, padx=5)
+
+        # button for moving to next page
+        self.next_page_button = ttk.Button(button_frame, text='>>', command=self.next_page, state=tk.DISABLED)
+        self.next_page_button.pack(side=tk.LEFT, padx=2)
+
+        self.zoom_in_button = ttk.Button(button_frame, text='+', command=self.zoom_in)
+        self.zoom_in_button.pack(side=tk.LEFT, padx=2)
+
+        self.zoom_out_button = ttk.Button(button_frame, text='-', command=self.zoom_out)
+        self.zoom_out_button.pack(side=tk.LEFT, padx=2)
+
+        self.pdf_canvas = tk.Canvas(self.pdf_frame, background='gray', width=600, height=800)
+        self.pdf_canvas.pack(fill=tk.BOTH, expand=True)
 
         # binding for drag & drop
         self.pdf_frame.drop_target_register(DND_FILES)
@@ -178,25 +205,93 @@ class TaxCalculator:
             load pdf and view
         """
         try:
+            if self.current_pdf:
+                self.current_pdf.close()
+
             if not os.path.exists(filename):
                 messagebox.showerror('Error', 'ファイルが見つかりません')
 
                 return
 
             # open file
-            with open(filename, 'rb') as file:
-                pdf_reader = PyPDF2.PdfReader(file)
-                self.pdf_text.delete(1.0, tk.END)
+            self.current_pdf = fitz.open(filename)
+            self.current_page = 0
+            self.pdf_zoom = 1.0
 
-                for page in pdf_reader.pages:
-                    text = page.extract_text()
-                    self.pdf_text.insert(tk.END, text + '\n\n')
+            self.page_label['text'] = f'{self.current_page + 1} / {len(self.current_pdf)} ページ'
+            self.prev_page_button['state'] = tk.DISABLED
+            self.next_page_button['state'] = tk.NORMAL if len(self.current_pdf) > 1 else tk.DISABLED
+
+            self.display_page()
         except PermissionError:
             messagebox.showerror('Error', 'PDF ファイルにアクセスする権限がありません')
         except FileNotFoundError:
             messagebox.showerror('Error', 'PDF ファイルが見つかりません')
         except Exception as e:
             messagebox.showerror('Error', f'PDF ファイルを読み込むときにエラーが発生しました\n{e}')
+
+    def display_page(self):
+        """
+            display current page
+        """
+        if not self.current_pdf:
+            return
+
+        page = self.current_pdf[self.current_page]
+
+        zoom = self.pdf_zoom
+        mat = fitz.Matrix(zoom, zoom)
+        pix = page.get_pixmap(matrix=mat)
+
+        img = Image.frombytes('RGB', [pix.width, pix.height], pix.samples)
+        photo = ImageTk.PhotoImage(img)
+
+        self.pdf_canvas.delete('all')
+        self.pdf_canvas.config(scrollregion=(0, 0, pix.width, pix.height))
+        self.pdf_canvas.create_image(0, 0, anchor=tk.NW, image=photo)
+        self.pdf_canvas.image = photo
+
+    def prev_page(self):
+        """
+            move to previous page
+        """
+        if self.current_page > 0:
+            self.current_page -= 1
+            self.display_page()
+
+            self.page_label['text'] = f'{self.current_page + 1} / {len(self.current_pdf)} ページ'
+            self.next_page_button['state'] = tk.NORMAL
+
+            if self.current_page == 0:
+                self.prev_page_button['state'] = tk.DISABLED
+
+    def next_page(self):
+        """
+            move to next page
+        """
+        if self.current_page < len (self.current_pdf) - 1:
+            self.current_page += 1
+            self.display_page()
+
+            self.page_label['text'] = f'{self.current_page + 1} / {len(self.current_pdf)} ページ'
+            self.prev_page_button['state'] = tk.NORMAL
+
+            if self.current_page == len(self.current_pdf) - 1:
+                self.next_page_button['state'] = tk.DISABLED
+
+    def zoom_in(self):
+        """
+            zoom in
+        """
+        self.pdf_zoom *= 1.2
+        self.display_page()
+
+    def zoom_out(self):
+        """
+            zoom out
+        """
+        self.pdf_zoom /= 1.2
+        self.display_page()
 
     def format_currency(self, amount):
         """
