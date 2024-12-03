@@ -161,9 +161,15 @@ class TaxCalculator:
         self.next_page_button = ttk.Button(button_frame, text='>>', command=self.next_page, state=tk.DISABLED)
         self.next_page_button.pack(side=tk.LEFT, padx=2)
 
+        # button for zoom in
         self.zoom_in_button = ttk.Button(button_frame, text='+', command=self.zoom_in)
         self.zoom_in_button.pack(side=tk.LEFT, padx=2)
 
+        # label for display zoom level
+        self.zoom_label = ttk.Label(button_frame, text='100 %', width=6)
+        self.zoom_label.pack(side=tk.LEFT, padx=2)
+
+        # button for zoom out
         self.zoom_out_button = ttk.Button(button_frame, text='-', command=self.zoom_out)
         self.zoom_out_button.pack(side=tk.LEFT, padx=2)
 
@@ -217,6 +223,7 @@ class TaxCalculator:
             self.current_pdf = fitz.open(filename)
             self.current_page = 0
             self.pdf_zoom = 1.0
+            self.update_zoom_display()
 
             self.page_label['text'] = f'{self.current_page + 1} / {len(self.current_pdf)} ページ'
             self.prev_page_button['state'] = tk.DISABLED
@@ -284,6 +291,7 @@ class TaxCalculator:
             zoom in
         """
         self.pdf_zoom *= 1.2
+        self.update_zoom_display()
         self.display_page()
 
     def zoom_out(self):
@@ -291,7 +299,15 @@ class TaxCalculator:
             zoom out
         """
         self.pdf_zoom /= 1.2
+        self.update_zoom_display()
         self.display_page()
+
+    def update_zoom_display(self):
+        """
+            update zoom level display
+        """
+        zoom_percentage = int(self.pdf_zoom * 100)
+        self.zoom_label['text'] = f'{zoom_percentage} %'
 
     def format_currency(self, amount):
         """
