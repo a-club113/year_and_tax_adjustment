@@ -1,7 +1,13 @@
 import locale
+import os
 import re
 import tkinter as tk
-from tkinter import messagebox, ttk
+import tkinter.scrolledtext as scrolledtext
+from tkinter import filedialog, messagebox, ttk
+
+import PyPDF2
+from PIL import Image, ImageTk
+from tkinterdnd2 import DND_FILES, TkinterDnD
 
 # set Japanese locale for curency formating
 locale.setlocale(locale.LC_ALL, 'ja_JP.UTF-8')
@@ -34,6 +40,8 @@ class TaxCalculator:
         self.root.bind('<BackSpace>', lambda event: self.calculate())
         for key in range(10):
             self.root.bind(f'<Key-{key}>', lambda event: self.calculate())
+
+        self.create_pdf_viewer()    # frame for pdf viewer
 
     def create_salary_mode_selection(self):
         """
@@ -118,6 +126,77 @@ class TaxCalculator:
         ttk.Label(self.main_frame, text='給与所得金額:').grid(row=7, column=0, sticky=tk.W)
         self.income_label = ttk.Label(self.main_frame, text='')
         self.income_label.grid(row=7, column=1, sticky=tk.W)
+
+    def create_pdf_viewer(self):
+        """
+            create frame and button for pdf viewer
+        """
+        # frame for pdf viewer
+        self.pdf_frame = ttk.LabelFrame(self.main_frame, text='PDF ビューワー')
+        self.pdf_frame.grid(row=0, column=2, rowspan=8, padx=10, sticky=(tk.N, tk.S, tk.E, tk.W))
+
+        # select pdf button
+        self.select_pdf_button = ttk.Button(self.pdf_frame, text='PDF を選択', command=self.open_pdf_file)
+        self.select_pdf_button.pack(pady=5)
+
+        # scroll text for view pdf
+        self.pdf_text = scrolledtext.ScrolledText(self.pdf_frame, wrap=tk.WORD, width=40, height=20)
+        self.pdf_text.pack(padx=5, pady=5, expand=True, fill=tk.BOTH)
+
+        # binding for drag & drop
+        self.pdf_frame.drop_target_register(DND_FILES)
+        self.pdf_frame.dnd_bind('<<Drop>>', self.handle_drop)
+
+    def open_pdf_file(self):
+        """
+            open pdf file using dialog
+        """
+        filetypes = [('PDF ファイル', '*.pdf')]
+        filename = filedialog.askopenfilename(title='PDF ファイルを選択', filetypes=filetypes)
+
+        if filename:
+            self.load_pdf(filename)
+
+    def handle_drop(self, event):
+        """
+            handle drop event
+        """
+        filenames = re.findall(r'{([^}]*)}', event.data)
+
+        if not filenames:
+            filenames = event.data.split()
+
+        pdf_files = [f.strip('\'\"') for f in filenames if f.lower().strip('\'\"').endswith('.pdf')]
+
+        if pdf_files:
+            self.load_pdf(pdf_files[0])
+        else:
+            messagebox.showerror('Error' ,'PDF ファイルをドロップしてください')
+
+    def load_pdf(self, filename):
+        """
+            load pdf and view
+        """
+        try:
+            if not os.path.exists(filename):
+                messagebox.showerror('Error', 'ファイルが見つかりません')
+
+                return
+
+            # open file
+            with open(filename, 'rb') as file:
+                pdf_reader = PyPDF2.PdfReader(file)
+                self.pdf_text.delete(1.0, tk.END)
+
+                for page in pdf_reader.pages:
+                    text = page.extract_text()
+                    self.pdf_text.insert(tk.END, text + '\n\n')
+        except PermissionError:
+            messagebox.showerror('Error', 'PDF ファイルにアクセスする権限がありません')
+        except FileNotFoundError:
+            messagebox.showerror('Error', 'PDF ファイルが見つかりません')
+        except Exception as e:
+            messagebox.showerror('Error', f'PDF ファイルを読み込むときにエラーが発生しました\n{e}')
 
     def format_currency(self, amount):
         """
@@ -208,7 +287,7 @@ def main():
     """
         main function to run the application
     """
-    root = tk.Tk()
+    root = TkinterDnD.Tk()
     app = TaxCalculator(root)
 
     root.mainloop()
