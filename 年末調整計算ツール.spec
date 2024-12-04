@@ -1,11 +1,16 @@
 # -*- mode: python ; coding: utf-8 -*-
+import os
+import sys
+import tkinterdnd2
+from pathlib import Path
 
+tkinterdnd2_path = os.path.dirname(os.path.abspath(sys.modules['tkinterdnd2'].__file__))
 
 a = Analysis(
     ['main.py'],
     pathex=[],
     binaries=[],
-    datas=[],
+    datas=[(tkinterdnd2_path, 'tkinterdnd2')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
