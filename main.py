@@ -8,6 +8,8 @@ import fitz
 from PIL import Image, ImageTk
 from tkinterdnd2 import DND_FILES, TkinterDnD
 
+from config import *
+
 # set Japanese locale for curency formating
 locale.setlocale(locale.LC_ALL, 'ja_JP.UTF-8')
 
@@ -17,8 +19,14 @@ class TaxCalculator:
     """
     def __init__(self, root) -> None:
         self.root = root
-        self.root.title('年末調整計算ツール')
+        self.root.title(UI_CONFIG['APP_TITLE'])
         root.grid_columnconfigure(2, weight=3)
+        # binding for auto calculation
+        self.root.bind('<Return>', lambda event: self.calculate())
+        self.root.bind('<KP_Enter>', lambda event: self.calculate())
+        self.root.bind('<BackSpace>', lambda event: self.calculate())
+        for key in range(10):
+            self.root.bind(f'<Key-{key}>', lambda event: self.calculate())
 
         # create and set up the main window
         self.main_frame = ttk.Frame(root, padding=10)
@@ -35,13 +43,6 @@ class TaxCalculator:
 
         self.monthly_salary_frame.grid_remove()
 
-        # binding for auto calculation
-        self.root.bind('<Return>', lambda event: self.calculate())
-        self.root.bind('<KP_Enter>', lambda event: self.calculate())
-        self.root.bind('<BackSpace>', lambda event: self.calculate())
-        for key in range(10):
-            self.root.bind(f'<Key-{key}>', lambda event: self.calculate())
-
         self.create_pdf_viewer()    # frame for pdf viewer
 
         # variables for pdf viewer
@@ -56,8 +57,8 @@ class TaxCalculator:
         mode_frame = ttk.Frame(self.main_frame)
         mode_frame.grid(row=0, column=0, columnspan=2, sticky=tk.W, pady=5)
 
-        ttk.Radiobutton(mode_frame, text='1年同一月給', variable=self.salary_mode, value='single', command=self.toggle_salary_mode_input).grid(row=0, column=0, padx=5)
-        ttk.Radiobutton(mode_frame, text='月ごとに月給を入力する', variable=self.salary_mode, value='monthly', command=self.toggle_salary_mode_input).grid(row=0, column=1, padx=5)
+        ttk.Radiobutton(mode_frame, text=RADIO_BUTTON_TEXTS['SINGLE'], variable=self.salary_mode, value='single', command=self.toggle_salary_mode_input).grid(row=0, column=0, padx=5)
+        ttk.Radiobutton(mode_frame, text=RADIO_BUTTON_TEXTS['MONTHLY'], variable=self.salary_mode, value='monthly', command=self.toggle_salary_mode_input).grid(row=0, column=1, padx=5)
 
     def create_input_fields(self):
         """
@@ -69,7 +70,7 @@ class TaxCalculator:
         self.single_salary_frame = ttk.Frame(self.main_frame)
         self.single_salary_frame.grid(row=1, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=5)
 
-        ttk.Label(self.single_salary_frame, text='月額給与 (円)').grid(row=0, column=0, sticky=tk.W, pady=5)
+        ttk.Label(self.single_salary_frame, text=LABEL_TEXTS['MONTHLY_SALARY']).grid(row=0, column=0, sticky=tk.W, pady=5)
         self.monthly_var = tk.StringVar()
         self.month_entry = ttk.Entry(self.single_salary_frame, textvariable=self.monthly_var, validate='key', validatecommand=vcmd)
         self.month_entry.grid(row=0, column=1, sticky=(tk.W, tk.E), pady=5)
@@ -79,18 +80,18 @@ class TaxCalculator:
         self.monthly_salary_frame.grid(row=1, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=5)
 
         for i in range(12):
-            ttk.Label(self.monthly_salary_frame, text=f'{i + 1}月', anchor='e').grid(row=i//2, column=(i%2)*2, sticky=(tk.E, tk.W), pady=2)
+            ttk.Label(self.monthly_salary_frame, text=f'{i + 1}月', anchor=tk.E).grid(row=i//2, column=(i%2)*2, sticky=(tk.E, tk.W), pady=2)
             entry = ttk.Entry(self.monthly_salary_frame, textvariable=self.monthly_salaries[i], width=10, validate='key', validatecommand=vcmd)
             entry.grid(row=i//2, column=(i%2)*2+1, sticky=(tk.W ,tk.E), pady=2)
 
         # bonus 1
-        ttk.Label(self.main_frame, text='賞与1 (円)').grid(row=2, column=0 ,sticky=tk.W, pady=5)
+        ttk.Label(self.main_frame, text=LABEL_TEXTS['BONUS1']).grid(row=2, column=0 ,sticky=tk.W, pady=5)
         self.bonus1_var = tk.StringVar()
         self.bonus1_entry = ttk.Entry(self.main_frame, textvariable=self.bonus1_var, validate='key', validatecommand=vcmd)
         self.bonus1_entry.grid(row=2, column=1, sticky=(tk.W, tk.E), pady=5)
 
         # bonus 2
-        ttk.Label(self.main_frame, text='賞与2 (円)').grid(row=3, column=0 ,sticky=tk.W, pady=5)
+        ttk.Label(self.main_frame, text=LABEL_TEXTS['BONUS2']).grid(row=3, column=0 ,sticky=tk.W, pady=5)
         self.bonus2_var = tk.StringVar()
         self.bonus2_entry = ttk.Entry(self.main_frame, textvariable=self.bonus2_var, validate='key', validatecommand=vcmd)
         self.bonus2_entry.grid(row=3, column=1, sticky=(tk.W, tk.E), pady=5)
@@ -113,8 +114,8 @@ class TaxCalculator:
         button_frame = ttk.Frame(self.main_frame)
         button_frame.grid(row=4, column=0, columnspan=2, pady=10)
 
-        ttk.Button(button_frame, text='計算', command=self.calculate).grid(row=0, column=0, padx=5)
-        ttk.Button(button_frame, text='クリア', command=self.clear).grid(row=0, column=1, padx=5)
+        ttk.Button(button_frame, text=BUTTON_TEXTS['CALCULATE'], command=self.calculate).grid(row=0, column=0, padx=5)
+        ttk.Button(button_frame, text=BUTTON_TEXTS['CLEAR'], command=self.clear).grid(row=0, column=1, padx=5)
 
     def create_result_labels(self):
         """
@@ -124,12 +125,12 @@ class TaxCalculator:
         ttk.Separator(self.main_frame, orient='horizontal').grid(row=5, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=10)
 
         # total yearly salary
-        ttk.Label(self.main_frame, text='年間給与金額:').grid(row=6, column=0, sticky=tk.W)
+        ttk.Label(self.main_frame, text=LABEL_TEXTS['TOTAL_YEARLY_SALARY']).grid(row=6, column=0, sticky=tk.W)
         self.total_label = ttk.Label(self.main_frame, text='')
         self.total_label.grid(row=6, column=1, sticky=tk.W)
 
         # income amount
-        ttk.Label(self.main_frame, text='給与所得金額:').grid(row=7, column=0, sticky=tk.W)
+        ttk.Label(self.main_frame, text=LABEL_TEXTS['INCOME_AMOUNT']).grid(row=7, column=0, sticky=tk.W)
         self.income_label = ttk.Label(self.main_frame, text='')
         self.income_label.grid(row=7, column=1, sticky=tk.W)
 
@@ -138,7 +139,7 @@ class TaxCalculator:
             create frame and button for pdf viewer
         """
         # frame for pdf viewer
-        self.pdf_frame = ttk.LabelFrame(self.main_frame, text='PDF ビューワー')
+        self.pdf_frame = ttk.LabelFrame(self.main_frame, text=UI_CONFIG['PDF_VIEWER_TITLE'])
         self.pdf_frame.grid(row=0, column=2, rowspan=8, padx=10, sticky=(tk.N, tk.S, tk.E, tk.W))
 
         # button frame
@@ -146,11 +147,11 @@ class TaxCalculator:
         button_frame.pack(side=tk.TOP, fill=tk.X)
 
         # select pdf button
-        self.select_pdf_button = ttk.Button(button_frame, text='PDF を選択', command=self.open_pdf_file)
+        self.select_pdf_button = ttk.Button(button_frame, text=BUTTON_TEXTS['SELECT_PDF'], command=self.open_pdf_file)
         self.select_pdf_button.pack(side=tk.LEFT, padx=5, pady=5)
 
         # button for moving to previous page
-        self.prev_page_button = ttk.Button(button_frame, text='<<', command=self.prev_page, state=tk.DISABLED)
+        self.prev_page_button = ttk.Button(button_frame, text=BUTTON_TEXTS['PREV_PAGE'], command=self.prev_page, state=tk.DISABLED)
         self.prev_page_button.pack(side=tk.LEFT, padx=2)
 
         # label for display page
@@ -158,11 +159,11 @@ class TaxCalculator:
         self.page_label.pack(side=tk.LEFT, padx=5)
 
         # button for moving to next page
-        self.next_page_button = ttk.Button(button_frame, text='>>', command=self.next_page, state=tk.DISABLED)
+        self.next_page_button = ttk.Button(button_frame, text=BUTTON_TEXTS['NEXT_PAGE'], command=self.next_page, state=tk.DISABLED)
         self.next_page_button.pack(side=tk.LEFT, padx=2)
 
         # button for zoom in
-        self.zoom_in_button = ttk.Button(button_frame, text='+', command=self.zoom_in)
+        self.zoom_in_button = ttk.Button(button_frame, text=BUTTON_TEXTS['ZOOM_IN'], command=self.zoom_in)
         self.zoom_in_button.pack(side=tk.LEFT, padx=2)
 
         # label for display zoom level
@@ -170,7 +171,7 @@ class TaxCalculator:
         self.zoom_label.pack(side=tk.LEFT, padx=2)
 
         # button for zoom out
-        self.zoom_out_button = ttk.Button(button_frame, text='-', command=self.zoom_out)
+        self.zoom_out_button = ttk.Button(button_frame, text=BUTTON_TEXTS['ZOOM_OUT'], command=self.zoom_out)
         self.zoom_out_button.pack(side=tk.LEFT, padx=2)
 
         self.pdf_canvas = tk.Canvas(self.pdf_frame, background='gray', width=600, height=800)
@@ -204,7 +205,7 @@ class TaxCalculator:
         if pdf_files:
             self.load_pdf(pdf_files[0])
         else:
-            messagebox.showerror('Error' ,'PDF ファイルをドロップしてください')
+            messagebox.showerror('Error', ERROR_MESSAGES['PDF_DROP_ERROR'])
 
     def load_pdf(self, filename):
         """
@@ -215,7 +216,7 @@ class TaxCalculator:
                 self.current_pdf.close()
 
             if not os.path.exists(filename):
-                messagebox.showerror('Error', 'ファイルが見つかりません')
+                messagebox.showerror('Error', ERROR_MESSAGES['FILE_NOT_FOUND'])
 
                 return
 
@@ -231,11 +232,11 @@ class TaxCalculator:
 
             self.display_page()
         except PermissionError:
-            messagebox.showerror('Error', 'PDF ファイルにアクセスする権限がありません')
+            messagebox.showerror('Error', ERROR_MESSAGES['PERMISSION_DENIED'])
         except FileNotFoundError:
-            messagebox.showerror('Error', 'PDF ファイルが見つかりません')
+            messagebox.showerror('Error', ERROR_MESSAGES['FILE_NOT_FOUND'])
         except Exception as e:
-            messagebox.showerror('Error', f'PDF ファイルを読み込むときにエラーが発生しました\n{e}')
+            messagebox.showerror('Error', f'{ERROR_MESSAGES['UNEXPECTED_ERROR']}\n{e}')
 
     def display_page(self):
         """
@@ -288,19 +289,21 @@ class TaxCalculator:
 
     def zoom_in(self):
         """
-            zoom in
+            zoom in, limited to configured maximum (x3.0)
         """
-        self.pdf_zoom *= 1.2
-        self.update_zoom_display()
-        self.display_page()
+        if self.pdf_zoom * UI_CONFIG['ZOOM_FACTOR'] <= UI_CONFIG['MAX_ZOOM']:
+            self.pdf_zoom *= UI_CONFIG['ZOOM_FACTOR']
+            self.update_zoom_display()
+            self.display_page()
 
     def zoom_out(self):
         """
-            zoom out
+            zoom out, limited to configured minimum (x0.25)
         """
-        self.pdf_zoom /= 1.2
-        self.update_zoom_display()
-        self.display_page()
+        if self.pdf_zoom / UI_CONFIG['ZOOM_FACTOR'] >= UI_CONFIG['MIN_ZOOM']:
+            self.pdf_zoom /= UI_CONFIG['ZOOM_FACTOR']
+            self.update_zoom_display()
+            self.display_page()
 
     def update_zoom_display(self):
         """
@@ -325,28 +328,15 @@ class TaxCalculator:
         """
             calculate income after employment income deduction
             support both single monthly salary and monthly variations
+            using external configuration for income rules
         """
         if isinstance(monthly_saralies, int):
             yearly_salary = (monthly_saralies * 12) + bonus1 + bonus2   # if a single monthly salary is used
         else:
             yearly_salary = sum(monthly_saralies) + bonus1 + bonus2     # if monthly salaries are provided
 
-        # calculate income (As of 2024)
-        income_rules = [
-            (550_999, lambda s: 0),
-            (1_618_999, lambda s: s - 550_000),
-            (1_619_999, lambda s: 1_069_000),
-            (1_621_999, lambda s: 1_070_000),
-            (1_623_999, lambda s: 1_072_000),
-            (1_627_999, lambda s: 1_074_000),
-            (1_799_999, lambda s: ((s // 4_000) * 1000) * 2.4 - 100_000),
-            (3_599_999, lambda s: ((s // 4_000) * 1000) * 2.8 - 80_000),
-            (6_599_999, lambda s: ((s // 4_000) * 1000) * 3.2 - 440_000),
-            (8_499_999, lambda s: s * 0.9 - 1_100_000),
-            (float('inf'), lambda s: s - 1_950_000)
-        ]
-
-        for threshold, calculation in income_rules:
+        # calculate income using imported INCOME_RULES
+        for threshold, calculation in INCOME_RULES:
             if yearly_salary <= threshold:
                 income = calculation(yearly_salary)
 
@@ -378,7 +368,7 @@ class TaxCalculator:
             self.income_label['text'] = f'¥ {self.format_currency(income)}'
         except ValueError:
             # show error for invalid input
-            messagebox.showerror('Error', '数値を正しく入力してください (例: 250000)')
+            messagebox.showerror('Error', ERROR_MESSAGES['INVALID_INPUT'])
 
     def clear(self):
         """
