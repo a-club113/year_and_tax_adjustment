@@ -3,6 +3,7 @@ import os
 import re
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
+from typing import List, Optional, Union
 
 import fitz
 from PIL import Image, ImageTk
@@ -15,9 +16,27 @@ locale.setlocale(locale.LC_ALL, 'ja_JP.UTF-8')
 
 class TaxCalculator:
     """
-        initialize the tax calculator window
+        A tax calculation application with PDF viewing capabilities.
+
+        This class provides a Tkinter-based GUI for calculating employment income deductions
+        and viewing PDF documents. It supports two salary input modes:
+        single monthly salary and monthly variations.
+
+        Attributes:
+            root                          (tk.Tk): The main application window.
+            salary_mode            (tk.StringVar): Tracks the current salary input mode.
+            monthly_salaries (List[tk.StringVar]): List of monthly salary input variables.
+            current_pdf (Optional[fitz.Document]): Currently loaded PDF document.
+            current_page                    (int): Current page number in the PDF viewer.
+            pdf_zoom                      (float): Current zoom level for PDF viewing.
     """
-    def __init__(self, root) -> None:
+    def __init__(self, root: tk.Tk) -> None:
+        """
+            Initialize the tax calculator application.
+
+            Args:
+                root (TkinterDnD.Tk): The main Tkinter window for the application.
+        """
         self.root = root
         self.root.title(UI_CONFIG['APP_TITLE'])
         root.grid_columnconfigure(2, weight=3)
@@ -50,9 +69,11 @@ class TaxCalculator:
         self.current_page = 0
         self.pdf_zoom = 1.0
 
-    def create_salary_mode_selection(self):
+    def create_salary_mode_selection(self) -> None:
         """
-            create radio buttons to select salary input mode
+            Create radio buttons for selecting salary input mode.
+
+            Allows switching between single monthly salary and monthly detailed salary inputs.
         """
         mode_frame = ttk.Frame(self.main_frame)
         mode_frame.grid(row=0, column=0, columnspan=2, sticky=tk.W, pady=5)
@@ -60,9 +81,14 @@ class TaxCalculator:
         ttk.Radiobutton(mode_frame, text=RADIO_BUTTON_TEXTS['SINGLE'], variable=self.salary_mode, value='single', command=self.toggle_salary_mode_input).grid(row=0, column=0, padx=5)
         ttk.Radiobutton(mode_frame, text=RADIO_BUTTON_TEXTS['MONTHLY'], variable=self.salary_mode, value='monthly', command=self.toggle_salary_mode_input).grid(row=0, column=1, padx=5)
 
-    def create_input_fields(self):
+    def create_input_fields(self) -> None:
         """
-            create and arrange input fields for single and monthly salary modes
+            Create and arrange input fields for salary and bonus information.
+
+            Sets up entry fields for:
+                - Single monthly salary or monthly salary varioations.
+                - First bonus amount
+                - Second bonus amount
         """
         vcmd = (self.root.register(self.validate_entry), '%P')      # register validate command
 
@@ -96,9 +122,12 @@ class TaxCalculator:
         self.bonus2_entry = ttk.Entry(self.main_frame, textvariable=self.bonus2_var, validate='key', validatecommand=vcmd)
         self.bonus2_entry.grid(row=3, column=1, sticky=(tk.W, tk.E), pady=5)
 
-    def toggle_salary_mode_input(self):
+    def toggle_salary_mode_input(self) -> None:
         """
-            toggle between single monthly and monthly salary inputs
+            Toggle between salary input modes.
+
+            Switches the visibility of the input frame between `single monthly salary` and
+            `monthly detailed salary` modes based on the selected radio button.
         """
         if self.salary_mode.get() == 'single':
             self.single_salary_frame.grid(row=1, column=0, columnspan=2)
@@ -107,9 +136,12 @@ class TaxCalculator:
             self.single_salary_frame.grid_remove()
             self.monthly_salary_frame.grid(row=1, column=0, columnspan=2)
 
-    def create_buttons(self):
+    def create_buttons(self) -> None:
         """
-            create and arrange buttons
+            Create and place calculation and clear buttons.
+
+            Buttons are created using predefined constant texts and
+            bound to corresponding command methods.
         """
         button_frame = ttk.Frame(self.main_frame)
         button_frame.grid(row=4, column=0, columnspan=2, pady=10)
@@ -117,9 +149,11 @@ class TaxCalculator:
         ttk.Button(button_frame, text=BUTTON_TEXTS['CALCULATE'], command=self.calculate).grid(row=0, column=0, padx=5)
         ttk.Button(button_frame, text=BUTTON_TEXTS['CLEAR'], command=self.clear).grid(row=0, column=1, padx=5)
 
-    def create_result_labels(self):
+    def create_result_labels(self) -> None:
         """
-            create and arrange result labels
+            Create and place labels for yearly salary and income amount results.
+
+            Adds a separator and initializes labels to display calculation results.
         """
         # separator
         ttk.Separator(self.main_frame, orient='horizontal').grid(row=5, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=10)
@@ -134,9 +168,12 @@ class TaxCalculator:
         self.income_label = ttk.Label(self.main_frame, text='')
         self.income_label.grid(row=7, column=1, sticky=tk.W)
 
-    def create_pdf_viewer(self):
+    def create_pdf_viewer(self) -> None:
         """
-            create frame and button for pdf viewer
+            Create PDF viewer frame and control elements.
+
+            Sets up UI elements for PDF file selection, page navigation, and zoom functionality.
+            Enables drag and drop capability.
         """
         # frame for pdf viewer
         self.pdf_frame = ttk.LabelFrame(self.main_frame, text=UI_CONFIG['PDF_VIEWER_TITLE'])
@@ -181,9 +218,12 @@ class TaxCalculator:
         self.pdf_frame.drop_target_register(DND_FILES)
         self.pdf_frame.dnd_bind('<<Drop>>', self.handle_drop)
 
-    def open_pdf_file(self):
+    def open_pdf_file(self) -> None:
         """
-            open pdf file using dialog
+            Open file dialog to select and load a PDF file.
+
+            Launches a file selection dialog and calls load_pdf method
+            when a PDF file is selected by user.
         """
         filetypes = [('PDF ファイル', '*.pdf')]
         filename = filedialog.askopenfilename(title='PDF ファイルを選択', filetypes=filetypes)
@@ -191,9 +231,15 @@ class TaxCalculator:
         if filename:
             self.load_pdf(filename)
 
-    def handle_drop(self, event):
+    def handle_drop(self, event: tk.Event) -> None:
         """
-            handle drop event
+            Handle PDF file drag and drop event.
+
+            Verified that the dropped file is a PDF file and loads the first PDF file.
+            Displays an error message if non-PDF files are dropped.
+
+            Args:
+                event (tk.Event): Drag and drop event
         """
         filenames = re.findall(r'{([^}]*)}', event.data)
 
@@ -207,9 +253,16 @@ class TaxCalculator:
         else:
             messagebox.showerror('Error', ERROR_MESSAGES['PDF_DROP_ERROR'])
 
-    def load_pdf(self, filename):
+    def load_pdf(self, filename: str) -> None:
         """
-            load pdf and view
+            Load and display a PDF file.
+
+            Args:
+                filename (str): Path to the PDF file to be loaded.
+
+            Raises:
+                PermissionError: If there are permission issues accessing the file.
+                FileNotFoundError: If the specified file does not exist.
         """
         try:
             if self.current_pdf:
@@ -238,9 +291,12 @@ class TaxCalculator:
         except Exception as e:
             messagebox.showerror('Error', f'{ERROR_MESSAGES['UNEXPECTED_ERROR']}\n{e}')
 
-    def display_page(self):
+    def display_page(self) -> None:
         """
-            display current page
+            Display the current PDF page on the canvas.
+
+            Renders the page according to the current zoom level and places it on the canvas.
+            Does nothing if no PDF is loaded.
         """
         if not self.current_pdf:
             return
@@ -259,9 +315,11 @@ class TaxCalculator:
         self.pdf_canvas.create_image(0, 0, anchor=tk.NW, image=photo)
         self.pdf_canvas.image = photo
 
-    def prev_page(self):
+    def prev_page(self) -> None:
         """
-            move to previous page
+            Navigate to the previous page in the PDF viewer.
+
+            Moves back one page if not on the first page and updates corresponding button states.
         """
         if self.current_page > 0:
             self.current_page -= 1
@@ -273,9 +331,11 @@ class TaxCalculator:
             if self.current_page == 0:
                 self.prev_page_button['state'] = tk.DISABLED
 
-    def next_page(self):
+    def next_page(self) -> None:
         """
-            move to next page
+            Navigate to the next page in the PDF viewer.
+
+            Moves forward one page if not one the last page and updates corresponding button states.
         """
         if self.current_page < len (self.current_pdf) - 1:
             self.current_page += 1
@@ -287,53 +347,80 @@ class TaxCalculator:
             if self.current_page == len(self.current_pdf) - 1:
                 self.next_page_button['state'] = tk.DISABLED
 
-    def zoom_in(self):
+    def zoom_in(self) -> None:
         """
-            zoom in, limited to configured maximum (x3.0)
+            Zoom in one th PDF page.
+
+            Enlarges the page up to the configured maximum zoom level and redraws the page.
         """
         if self.pdf_zoom * UI_CONFIG['ZOOM_FACTOR'] <= UI_CONFIG['MAX_ZOOM']:
             self.pdf_zoom *= UI_CONFIG['ZOOM_FACTOR']
             self.update_zoom_display()
             self.display_page()
 
-    def zoom_out(self):
+    def zoom_out(self) -> None:
         """
-            zoom out, limited to configured minimum (x0.25)
+            Zoom out of the PDF page.
+
+            Reduces the page down to the configured minimum zoom level and redraws the page.
         """
         if self.pdf_zoom / UI_CONFIG['ZOOM_FACTOR'] >= UI_CONFIG['MIN_ZOOM']:
             self.pdf_zoom /= UI_CONFIG['ZOOM_FACTOR']
             self.update_zoom_display()
             self.display_page()
 
-    def update_zoom_display(self):
+    def update_zoom_display(self) -> None:
         """
-            update zoom level display
+            Update the zoom level display label.
+
+            Updates and displays the zoom percentage in the label.
         """
         zoom_percentage = int(self.pdf_zoom * 100)
         self.zoom_label['text'] = f'{zoom_percentage} %'
 
-    def format_currency(self, amount):
+    def format_currency(self, amount: Union[int, float]) -> str:
         """
-            format amount as currency with thousands separator
+            Format the given amount as currency with thousands separator.
+
+            Args:
+                amount (Union[int, float]): The monetary amount to format.
+
+            Returns:
+                str: Formatted currency string without currency symbol.
         """
         return locale.currency(amount, grouping=True, symbol=False)
 
-    def validate_entry(self, text):
+    def validate_entry(self, text: str) -> bool:
         """
-            validate the entry to allow only numeric characters, commas, and spaces
+            Validate user input to allow only numeric characters, commas, and spaces.
+
+            Args:
+                text (str): input text to validatetest (str): The input text to validate.
+
+            Returns:
+                bool: True if input is valid, False otherwise.
         """
         return re.fullmatch(r'[\d, \s]*', text) is not None
 
-    def calculate_income(self, monthly_saralies, bonus1=0, bonus2=0):
+    def calculate_income(self, monthly_salaries: Union[int, List[int]], bonus1: int = 0, bonus2: int = 0) -> Tuple[int, int]:
         """
-            calculate income after employment income deduction
-            support both single monthly salary and monthly variations
-            using external configuration for income rules
+            Calculate yearly income and employment income deduction.
+
+            Supports both single monthly salary and monthly variations.
+            Uses predefined income rules from `config.py`.
+
+            Args:
+                monthly_salaries (Union[int, List[int]]): Monthly salary amount or list of monthly salaries.
+                bonus1                   (int, optional): First bonus amount. Defaults to 0.
+                bonus2                   (int, optional): Second bonus amount. Defaults to 0.
+
+            Returns:
+                Tuple[int, int]: A tuple containing (yearly salary, income after deduction).
         """
-        if isinstance(monthly_saralies, int):
-            yearly_salary = (monthly_saralies * 12) + bonus1 + bonus2   # if a single monthly salary is used
+        if isinstance(monthly_salaries, int):
+            yearly_salary = (monthly_salaries * 12) + bonus1 + bonus2   # if a single monthly salary is used
         else:
-            yearly_salary = sum(monthly_saralies) + bonus1 + bonus2     # if monthly salaries are provided
+            yearly_salary = sum(monthly_salaries) + bonus1 + bonus2     # if monthly salaries are provided
 
         # calculate income using imported INCOME_RULES
         for threshold, calculation in INCOME_RULES:
@@ -344,9 +431,12 @@ class TaxCalculator:
 
         return yearly_salary, income
 
-    def calculate(self):
+    def calculate(self) -> None:
         """
-            calculate and display results
+            Calculate yearly salary and income amount from salary and bonuses.
+
+            Cleans up input values and performs calculation based on the selected input mode.
+            Displays results in labels and shows an error message for invalid inputs.
         """
         try:
             clean_input = lambda x: int(re.sub(r'[^\d]', '', x) or 0)
@@ -370,9 +460,11 @@ class TaxCalculator:
             # show error for invalid input
             messagebox.showerror('Error', ERROR_MESSAGES['INVALID_INPUT'])
 
-    def clear(self):
+    def clear(self) -> None:
         """
-            clear all inputs and outputs
+            Clear all input fields and result labels.
+
+            Resets monthly salary, bonus input fields, and result labels to empty state.
         """
         self.monthly_var.set('')
 
@@ -384,9 +476,11 @@ class TaxCalculator:
         self.total_label['text'] = ''
         self.income_label['text'] = ''
 
-def main():
+def main() -> None:
     """
-        main function to run the application
+        Main function to initialize and run the tax calculator application.
+
+        Creates the main Tkinter window and starts the application event loop.
     """
     root = TkinterDnD.Tk()
     app = TaxCalculator(root)

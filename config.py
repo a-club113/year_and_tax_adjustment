@@ -1,6 +1,6 @@
-from typing import Callable, List, Tuple
+from typing import Callable, Dict, List, Tuple, Union
 
-# duduction rule (as of 2024)
+# Employment income duduction rules (as of 2024)
 INCOME_RULES: List[Tuple[float, Callable[[int], int]]] = [
     (550_999, lambda s: 0),
     (1_618_999, lambda s: s - 550_000),
@@ -15,8 +15,8 @@ INCOME_RULES: List[Tuple[float, Callable[[int], int]]] = [
     (float('inf'), lambda s: s - 1_950_000)
 ]
 
-# UI の定数
-UI_CONFIG = {
+# UI configuration constants
+UI_CONFIG: Dict[str, Union[str, float]] = {
     'APP_TITLE': '年末調整計算ツール',
     'PDF_VIEWER_TITLE': 'PDF ビューワー',
     'MAX_ZOOM': 3.0,
@@ -24,8 +24,8 @@ UI_CONFIG = {
     'ZOOM_FACTOR': 1.2
 }
 
-# エラーメッセージ
-ERROR_MESSAGES = {
+# Error message difinitions
+ERROR_MESSAGES: Dict[str, str] = {
     'FILE_NOT_FOUND': 'PDF ファイルが見つかりません',
     'PERMISSION_DENIED': 'PDF ファイルにアクセスする権限がありません',
     'INVALID_INPUT': '数値を正しく入力してください (例: 250000)',
@@ -33,8 +33,8 @@ ERROR_MESSAGES = {
     'UNEXPECTED_EROOR': 'PDF ファイルを読み込むときに予期せぬエラーが発生しました'
 }
 
-# ラベルテキスト
-LABEL_TEXTS = {
+# Label text difinitions
+LABEL_TEXTS: Dict[str, str] = {
     'MONTHLY_SALARY': '月額給与 (円)',
     'BONUS1': '賞与1 (円)',
     'BONUS2': '賞与2 (円)',
@@ -42,13 +42,13 @@ LABEL_TEXTS = {
     'INCOME_AMOUNT': '給与所得金額: '
 }
 
-# ラジオボタンテキスト
-RADIO_BUTTON_TEXTS = {
+# Radio button text difinitions
+RADIO_BUTTON_TEXTS: Dict[str, str] = {
     'SINGLE': '1年同一月給',
     'MONTHLY': '月毎に月給を入力する'
 }
 
-# ボタンテキスト
+# Button text difinitions
 BUTTON_TEXTS = {
     'CALCULATE': '計算',
     'CLEAR': 'クリア',
