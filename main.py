@@ -3,7 +3,7 @@ import os
 import re
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
-from typing import List, Optional, Union
+from typing import List, Union
 
 import fitz
 from PIL import Image, ImageTk
