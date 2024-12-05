@@ -192,7 +192,7 @@ class TaxCalculator:
         self.prev_page_button.pack(side=tk.LEFT, padx=2)
 
         # label for display page
-        self.page_label = ttk.Label(button_frame, text='0 / 0 ページ', width=10)
+        self.page_label = ttk.Label(button_frame, text='0 / 0 ページ', width=20, anchor=tk.CENTER)
         self.page_label.pack(side=tk.LEFT, padx=5)
 
         # button for moving to next page
