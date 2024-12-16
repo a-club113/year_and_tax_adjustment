@@ -11,7 +11,7 @@ from tkinterdnd2 import DND_FILES, TkinterDnD
 
 from config import *
 
-# set Japanese locale for curency formating
+# set Japanese locale for currency formating
 locale.setlocale(locale.LC_ALL, 'ja_JP.UTF-8')
 
 class TaxCalculator:
